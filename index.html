@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sankalp Jr. | Senior Software Engineer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0f172a;
+            color: #f1f5f9;
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <!-- Hero Section -->
+    <section class="min-h-screen flex items-center justify-center px-6">
+        <div class="text-center" data-aos="fade-up" data-aos-duration="1000">
+            <h1 class="text-6xl md:text-8xl font-bold mb-4">
+                Hi, I'm <span class="gradient-text">Sankalp Jr.</span>
+            </h1>
+            <p class="text-xl md:text-2xl text-slate-400 mb-8 max-w-2xl mx-auto">
+                Senior Software Engineer with 5 years of mastery in building impactful products.
+            </p>
+            <div class="flex gap-4 justify-center">
+                <a href="#about" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-full font-semibold transition-all">
+                    Explore My Work
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="py-24 px-6 max-w-5xl mx-auto">
+        <div class="grid md:grid-cols-2 gap-12 items-center">
+            <div data-aos="fade-right">
+                <h2 class="text-4xl font-bold mb-6">Expertise & <span class="text-indigo-400">Passion</span></h2>
+                <p class="text-lg text-slate-300 mb-6 leading-relaxed">
+                    With over half a decade in the industry, I specialize in crafting robust software architectures. 
+                    I'm currently obsessed with the intersection of <span class="font-semibold text-white">Agentic Workflows</span> and <span class="font-semibold text-white">Generative AI</span>.
+                </p>
+                <div class="flex flex-wrap gap-3">
+                    <span class="px-4 py-1 rounded-full bg-slate-800 text-sm border border-slate-700">Agentic AI</span>
+                    <span class="px-4 py-1 rounded-full bg-slate-800 text-sm border border-slate-700">GenAI</span>
+                    <span class="px-4 py-1 rounded-full bg-slate-800 text-sm border border-slate-700">Full Stack</span>
+                    <span class="px-4 py-1 rounded-full bg-slate-800 text-sm border border-slate-700">Product Engineering</span>
+                </div>
+            </div>
+            <div class="glass-card p-8 rounded-3xl" data-aos="fade-left">
+                <div class="space-y-6">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400">
+                            🏏
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold">Cricket Enthusiast</h3>
+                            <p class="text-slate-400">When I'm not coding, you'll find me on the pitch, perfecting my cover drive.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-sky-500/20 rounded-xl flex items-center justify-center text-sky-400">
+                            🚀
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold">Builder Mindset</h3>
+                            <p class="text-slate-400">I love turning complex problems into elegant, scalable software solutions.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Status/Metrics Section -->
+    <section class="py-24 px-6 bg-slate-900/50">
+        <div class="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div class="text-center" data-aos="zoom-in" data-aos-delay="100">
+                <div class="text-4xl font-bold gradient-text mb-2">5+</div>
+                <div class="text-slate-500 uppercase text-xs tracking-widest">Years Experience</div>
+            </div>
+            <div class="text-center" data-aos="zoom-in" data-aos-delay="200">
+                <div class="text-4xl font-bold gradient-text mb-2">50+</div>
+                <div class="text-slate-500 uppercase text-xs tracking-widest">Apps Built</div>
+            </div>
+            <div class="text-center" data-aos="zoom-in" data-aos-delay="300">
+                <div class="text-4xl font-bold gradient-text mb-2">100%</div>
+                <div class="text-slate-500 uppercase text-xs tracking-widest">Commitment</div>
+            </div>
+            <div class="text-center" data-aos="zoom-in" data-aos-delay="400">
+                <div class="text-4xl font-bold gradient-text mb-2">∞</div>
+                <div class="text-slate-500 uppercase text-xs tracking-widest">Coffee/Cricket</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 text-center text-slate-500 border-t border-slate-800">
+        <p>© 2026 Sankalp Jr. | sankalpjr.com</p>
+    </footer>
+
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({
+            once: true,
+            mirror: false
+        });
+    </script>
+</body>
+</html>
