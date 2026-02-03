@@ -22,6 +22,83 @@
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            background: rgba(30, 41, 59, 0.9);
+            border-color: rgba(79, 70, 229, 0.3);
+            transform: translateY(-4px);
+        }
+
+        /* Metric card animations */
+        .metric-card {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        .metric-card:hover::before {
+            left: 100%;
+        }
+        .metric-card:hover {
+            transform: scale(1.05);
+        }
+
+        /* Pulse animation for interest items */
+        @keyframes gentle-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(79, 70, 229, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(79, 70, 229, 0.6); }
+        }
+
+        .interest-item {
+            animation: float 3s ease-in-out infinite;
+        }
+        .interest-item:nth-child(1) { animation-delay: 0s; }
+        .interest-item:nth-child(2) { animation-delay: 0.5s; }
+
+        .cricket-icon {
+            animation: gentle-pulse 2s ease-in-out infinite;
+        }
+        .tech-icon {
+            animation: gentle-pulse 2s ease-in-out infinite;
+            animation-delay: 0.3s;
+        }
+
+        /* Subtle shimmer effect */
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+        .shimmer-bg {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            background-size: 1000px 100%;
+            animation: shimmer 3s infinite;
+        }
+
+        /* Stat number animation */
+        .stat-number {
+            transition: all 0.3s ease;
+        }
+        .metric-card:hover .stat-number {
+            color: #38bdf8;
+            transform: scale(1.1);
         }
     </style>
 </head>
@@ -62,8 +139,8 @@
             </div>
             <div class="glass-card p-8 rounded-3xl" data-aos="fade-left">
                 <div class="space-y-6">
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400">
+                    <div class="flex items-start gap-4 interest-item">
+                        <div class="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center text-2xl cricket-icon">
                             🏏
                         </div>
                         <div>
@@ -71,8 +148,8 @@
                             <p class="text-slate-400">When I'm not coding, you'll find me on the pitch, perfecting my cover drive.</p>
                         </div>
                     </div>
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-sky-500/20 rounded-xl flex items-center justify-center text-sky-400">
+                    <div class="flex items-start gap-4 interest-item">
+                        <div class="w-12 h-12 bg-sky-500/20 rounded-xl flex items-center justify-center text-2xl tech-icon">
                             🚀
                         </div>
                         <div>
@@ -87,22 +164,27 @@
 
     <!-- Status/Metrics Section -->
     <section class="py-24 px-6 bg-slate-900/50">
-        <div class="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div class="text-center" data-aos="zoom-in" data-aos-delay="100">
-                <div class="text-4xl font-bold gradient-text mb-2">5+</div>
-                <div class="text-slate-500 uppercase text-xs tracking-widest">Years Experience</div>
-            </div>
-            <div class="text-center" data-aos="zoom-in" data-aos-delay="200">
-                <div class="text-4xl font-bold gradient-text mb-2">50+</div>
-                <div class="text-slate-500 uppercase text-xs tracking-widest">Apps Built</div>
-            </div>
-            <div class="text-center" data-aos="zoom-in" data-aos-delay="300">
-                <div class="text-4xl font-bold gradient-text mb-2">100%</div>
-                <div class="text-slate-500 uppercase text-xs tracking-widest">Commitment</div>
-            </div>
-            <div class="text-center" data-aos="zoom-in" data-aos-delay="400">
-                <div class="text-4xl font-bold gradient-text mb-2">∞</div>
-                <div class="text-slate-500 uppercase text-xs tracking-widest">Coffee/Cricket</div>
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-3xl font-bold text-center mb-16" data-aos="fade-up">
+                By The <span class="gradient-text">Numbers</span>
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+                <div class="metric-card text-center p-6 rounded-lg glass-card" data-aos="zoom-in" data-aos-delay="100">
+                    <div class="stat-number text-5xl font-bold gradient-text mb-3">5+</div>
+                    <div class="text-slate-400 uppercase text-xs tracking-widest">Years Experience</div>
+                </div>
+                <div class="metric-card text-center p-6 rounded-lg glass-card" data-aos="zoom-in" data-aos-delay="150">
+                    <div class="stat-number text-5xl font-bold gradient-text mb-3">50+</div>
+                    <div class="text-slate-400 uppercase text-xs tracking-widest">Apps Built</div>
+                </div>
+                <div class="metric-card text-center p-6 rounded-lg glass-card" data-aos="zoom-in" data-aos-delay="200">
+                    <div class="stat-number text-5xl font-bold gradient-text mb-3">100%</div>
+                    <div class="text-slate-400 uppercase text-xs tracking-widest">Commitment</div>
+                </div>
+                <div class="metric-card text-center p-6 rounded-lg glass-card" data-aos="zoom-in" data-aos-delay="250">
+                    <div class="stat-number text-5xl font-bold gradient-text mb-3">∞</div>
+                    <div class="text-slate-400 uppercase text-xs tracking-widest">Coffee/Cricket</div>
+                </div>
             </div>
         </div>
     </section>
