@@ -1246,126 +1246,133 @@
     setTimeout(()=>{ tapEl.classList.add('show'); }, 400);
   }, 1700);
 
-  /* Tap / click anywhere on the tap screen → play sound + enter site
-     iOS Safari REQUIRES AudioContext to be created synchronously
-     inside a touchstart/click handler — so we build it right here. */
+  /* Tap / click anywhere on the tap screen → play sound + enter site.
+     MOBILE FIX NOTES:
+     - AudioContext must be created synchronously inside the gesture handler
+     - ctx.resume() must also be called synchronously (not in .then())
+     - passive:false on touchstart so preventDefault() can be called on Android
+     - onTap fires only ONCE — all three event types share a single guard     */
+  let tapped = false;
   function onTap(e){
+    if(tapped) return;
+    tapped = true;
+
+    /* Remove all listeners immediately */
     tapEl.removeEventListener('touchstart', onTap);
     tapEl.removeEventListener('pointerdown', onTap);
     tapEl.removeEventListener('click', onTap);
 
-    /* ── Create AudioContext INSIDE the gesture handler (iOS fix) ── */
+    tapEl.classList.add('out');
+
+    /* ── Build and play audio synchronously inside the gesture ── */
     try {
       const AC = window.AudioContext || window.webkitAudioContext;
-      if(AC){
-        const ctx = new AC();
-        /* iOS may still start in 'suspended' — resume() unlocks it */
-        const run = () => {
-          const master = ctx.createGain();
-          master.gain.setValueAtTime(1, ctx.currentTime);
-          master.connect(ctx.destination);
+      if(!AC) return;
 
-          const lpf = ctx.createBiquadFilter();
-          lpf.type = 'lowpass';
-          lpf.frequency.setValueAtTime(1400, ctx.currentTime);
-          lpf.frequency.exponentialRampToValueAtTime(350, ctx.currentTime + 1.4);
-          lpf.Q.value = 0.7;
-          lpf.connect(master);
+      const ctx = new AC();
 
-          /* Sub-bass sine */
-          const sub = ctx.createOscillator();
-          const subG = ctx.createGain();
-          sub.type = 'sine';
-          sub.frequency.setValueAtTime(65, ctx.currentTime);
-          sub.frequency.exponentialRampToValueAtTime(38, ctx.currentTime + 1.6);
-          subG.gain.setValueAtTime(0, ctx.currentTime);
-          subG.gain.linearRampToValueAtTime(0.7, ctx.currentTime + 0.04);
-          subG.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.7);
-          sub.connect(subG); subG.connect(lpf);
-          sub.start(); sub.stop(ctx.currentTime + 1.8);
+      /* CRITICAL: call resume() synchronously here — NOT in a .then()
+         Android Chrome requires this to happen inside the gesture stack */
+      if(ctx.state === 'suspended') ctx.resume();
 
-          /* Punch hit */
-          function punch(freq, t0, dur, vol){
-            const o = ctx.createOscillator();
-            const ws = ctx.createWaveShaper();
-            const g  = ctx.createGain();
-            const cv = new Float32Array(512);
-            for(let i=0;i<512;i++){
-              const x=(i*2/511)-1;
-              cv[i]=(Math.PI+300)*x/(Math.PI+300*Math.abs(x));
-            }
-            ws.curve = cv;
-            o.type='sawtooth';
-            o.frequency.setValueAtTime(freq, t0);
-            o.frequency.exponentialRampToValueAtTime(freq*0.18, t0+dur);
-            g.gain.setValueAtTime(0, t0);
-            g.gain.linearRampToValueAtTime(vol, t0+0.012);
-            g.gain.exponentialRampToValueAtTime(0.001, t0+dur);
-            o.connect(ws); ws.connect(g); g.connect(lpf);
-            o.start(t0); o.stop(t0+dur+0.05);
-          }
-          punch(110, ctx.currentTime,       0.5,  1.0);
-          punch(150, ctx.currentTime+0.65,  1.15, 1.4);
+      const T = ctx.currentTime;
 
-          /* Noise transient snap */
-          function snap(t0){
-            const b = ctx.createBuffer(1, Math.floor(ctx.sampleRate*0.06), ctx.sampleRate);
-            const d = b.getChannelData(0);
-            for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2.5);
-            const s = ctx.createBufferSource();
-            const g = ctx.createGain();
-            s.buffer=b;
-            g.gain.setValueAtTime(0.5, t0);
-            g.gain.exponentialRampToValueAtTime(0.001, t0+0.06);
-            s.connect(g); g.connect(master);
-            s.start(t0);
-          }
-          snap(ctx.currentTime);
-          snap(ctx.currentTime+0.65);
+      const master = ctx.createGain();
+      master.gain.setValueAtTime(1, T);
+      master.connect(ctx.destination);
 
-          /* Reverb tail on DUM */
-          (function(){
-            const len  = Math.floor(ctx.sampleRate*3);
-            const rb   = ctx.createBuffer(2, len, ctx.sampleRate);
-            for(let c=0;c<2;c++){
-              const d=rb.getChannelData(c);
-              for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2);
-            }
-            const conv = ctx.createConvolver(); conv.buffer=rb;
-            const rg   = ctx.createGain(); rg.gain.value=0.22;
-            const ro   = ctx.createOscillator();
-            const rgo  = ctx.createGain();
-            const t0   = ctx.currentTime+0.65;
-            ro.type='sawtooth';
-            ro.frequency.setValueAtTime(150, t0);
-            ro.frequency.exponentialRampToValueAtTime(35, t0+1.15);
-            rgo.gain.setValueAtTime(0, t0);
-            rgo.gain.linearRampToValueAtTime(1.2, t0+0.012);
-            rgo.gain.exponentialRampToValueAtTime(0.001, t0+1.15);
-            ro.connect(rgo); rgo.connect(conv); conv.connect(rg); rg.connect(master);
-            ro.start(t0); ro.stop(t0+1.3);
-          })();
+      const lpf = ctx.createBiquadFilter();
+      lpf.type = 'lowpass';
+      lpf.frequency.setValueAtTime(1400, T);
+      lpf.frequency.exponentialRampToValueAtTime(350, T + 1.4);
+      lpf.Q.value = 0.7;
+      lpf.connect(master);
 
-          /* Fade out master */
-          master.gain.setValueAtTime(1, ctx.currentTime+1.6);
-          master.gain.linearRampToValueAtTime(0, ctx.currentTime+2.4);
-        };
+      /* Sub-bass sine */
+      const sub  = ctx.createOscillator();
+      const subG = ctx.createGain();
+      sub.type = 'sine';
+      sub.frequency.setValueAtTime(65, T);
+      sub.frequency.exponentialRampToValueAtTime(38, T + 1.6);
+      subG.gain.setValueAtTime(0,   T);
+      subG.gain.linearRampToValueAtTime(0.7, T + 0.04);
+      subG.gain.exponentialRampToValueAtTime(0.001, T + 1.7);
+      sub.connect(subG); subG.connect(lpf);
+      sub.start(T); sub.stop(T + 1.8);
 
-        if(ctx.state === 'suspended'){
-          ctx.resume().then(run).catch(()=>{});
-        } else {
-          run();
+      /* Punch hit — sawtooth with soft waveshaper */
+      function punch(freq, t0, dur, vol){
+        const o  = ctx.createOscillator();
+        const ws = ctx.createWaveShaper();
+        const g  = ctx.createGain();
+        const cv = new Float32Array(512);
+        for(let i=0;i<512;i++){
+          const x=(i*2/511)-1;
+          cv[i]=(Math.PI+300)*x/(Math.PI+300*Math.abs(x));
         }
+        ws.curve = cv;
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(freq, t0);
+        o.frequency.exponentialRampToValueAtTime(freq*0.18, t0+dur);
+        g.gain.setValueAtTime(0, t0);
+        g.gain.linearRampToValueAtTime(vol, t0+0.012);
+        g.gain.exponentialRampToValueAtTime(0.001, t0+dur);
+        o.connect(ws); ws.connect(g); g.connect(lpf);
+        o.start(t0); o.stop(t0+dur+0.05);
       }
-    } catch(e){}
+      punch(110, T,        0.5,  1.0);  /* TA  */
+      punch(150, T+0.65,   1.15, 1.4);  /* DUM */
 
-    tapEl.classList.add('out');
+      /* Noise transient snap */
+      function snap(t0){
+        const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate*0.06), ctx.sampleRate);
+        const dat = buf.getChannelData(0);
+        for(let i=0;i<dat.length;i++) dat[i]=(Math.random()*2-1)*Math.pow(1-i/dat.length,2.5);
+        const s = ctx.createBufferSource();
+        const g = ctx.createGain();
+        s.buffer = buf;
+        g.gain.setValueAtTime(0.5, t0);
+        g.gain.exponentialRampToValueAtTime(0.001, t0+0.06);
+        s.connect(g); g.connect(master);
+        s.start(t0);
+      }
+      snap(T);
+      snap(T+0.65);
+
+      /* Reverb tail */
+      (function(){
+        const len = Math.floor(ctx.sampleRate*3);
+        const rb  = ctx.createBuffer(2, len, ctx.sampleRate);
+        for(let c=0;c<2;c++){
+          const d=rb.getChannelData(c);
+          for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2);
+        }
+        const conv = ctx.createConvolver(); conv.buffer=rb;
+        const rg   = ctx.createGain();      rg.gain.value=0.22;
+        const ro   = ctx.createOscillator();
+        const rgo  = ctx.createGain();
+        const t0   = T+0.65;
+        ro.type = 'sawtooth';
+        ro.frequency.setValueAtTime(150, t0);
+        ro.frequency.exponentialRampToValueAtTime(35, t0+1.15);
+        rgo.gain.setValueAtTime(0, t0);
+        rgo.gain.linearRampToValueAtTime(1.2, t0+0.012);
+        rgo.gain.exponentialRampToValueAtTime(0.001, t0+1.15);
+        ro.connect(rgo); rgo.connect(conv); conv.connect(rg); rg.connect(master);
+        ro.start(t0); ro.stop(t0+1.3);
+      })();
+
+      /* Master fade out */
+      master.gain.setValueAtTime(1,   T+1.6);
+      master.gain.linearRampToValueAtTime(0, T+2.4);
+
+    } catch(err){ /* audio not supported — silent */ }
   }
 
-  /* touchstart fires first on iOS; pointerdown + click as fallbacks */
-  tapEl.addEventListener('touchstart', onTap, { once: true, passive: true });
-  tapEl.addEventListener('pointerdown', onTap, { once: true });
-  tapEl.addEventListener('click', onTap, { once: true });
+  /* passive:false on touchstart allows Android Chrome to unlock AudioContext */
+  tapEl.addEventListener('touchstart', onTap, { once:true, passive:false });
+  tapEl.addEventListener('pointerdown', onTap, { once:true });
+  tapEl.addEventListener('click',       onTap, { once:true });
 })();
 
 /* ── NOISE (smooth film grain — Corentin style) ─────────────── */
