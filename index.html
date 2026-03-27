@@ -27,26 +27,11 @@
     a { color:inherit; text-decoration:none; }
     img { display:block; max-width:100%; }
 
-    /* ─── ANIMATED BACKGROUND (Corentin settle style) ──────── */
+    /* ─── ANIMATED BACKGROUND (Corentin Perlin settle) ──────── */
     #noise {
       position:fixed; inset:0;
       pointer-events:none; z-index:0;
       opacity:1;
-    }
-    /* Smooth slow-moving radial gradient blobs */
-    #bg-settle {
-      position:fixed; inset:0;
-      pointer-events:none; z-index:0;
-      background: radial-gradient(ellipse 80% 60% at 20% 20%, rgba(255,255,255,0.03) 0%, transparent 70%),
-                  radial-gradient(ellipse 60% 80% at 80% 80%, rgba(255,255,255,0.025) 0%, transparent 70%),
-                  radial-gradient(ellipse 50% 50% at 50% 50%, rgba(255,255,255,0.015) 0%, transparent 80%);
-      animation: bg-drift 18s ease-in-out infinite alternate;
-    }
-    @keyframes bg-drift {
-      0%   { background-position: 20% 20%, 80% 80%, 50% 50%; opacity:1; }
-      33%  { background-position: 60% 10%, 30% 90%, 70% 30%; }
-      66%  { background-position: 80% 60%, 10% 20%, 30% 70%; }
-      100% { background-position: 10% 80%, 70% 30%, 60% 60%; opacity:0.6; }
     }
 
     /* ─── CUSTOM CURSOR ────────────────────────────────────── */
@@ -778,7 +763,6 @@
 
 <!-- ANIMATED BACKGROUND -->
 <canvas id="noise"></canvas>
-<div id="bg-settle"></div>
 
 <!-- CURSOR -->
 <div id="cur"></div>
@@ -1327,46 +1311,119 @@
   tapEl.addEventListener('click', onTap, { once: true });
 })();
 
-/* ── NOISE (smooth film grain — Corentin style) ─────────────── */
+/* ── BACKGROUND: Perlin-noise settle (Corentin Bernadou style) ─ */
 (function(){
   const cv = document.getElementById('noise');
   const cx = cv.getContext('2d');
-  let w, h, frame=0;
-  /* Downscale grain for perf, upscale with CSS */
-  const SCALE = 3;
+
+  /* ── Minimal Perlin / value-noise implementation ── */
+  const P = new Uint8Array(512);
+  (function(){
+    const p=new Uint8Array(256);
+    for(let i=0;i<256;i++) p[i]=i;
+    for(let i=255;i>0;i--){
+      const j=Math.random()*(i+1)|0;
+      [p[i],p[j]]=[p[j],p[i]];
+    }
+    P.set(p); P.set(p,256);
+  })();
+  function fade(t){ return t*t*t*(t*(t*6-15)+10); }
+  function lerp(a,b,t){ return a+t*(b-a); }
+  function grad(h,x,y){
+    h&=3;
+    const u=h<2?x:y, v=h<2?y:x;
+    return ((h&1)?-u:u)+((h&2)?-v:v);
+  }
+  function noise2(x,y){
+    const X=Math.floor(x)&255, Y=Math.floor(y)&255;
+    x-=Math.floor(x); y-=Math.floor(y);
+    const u=fade(x), v=fade(y);
+    const a=P[X]+Y, b=P[X+1]+Y;
+    return lerp(
+      lerp(grad(P[a],x,y),   grad(P[b],x-1,y),   u),
+      lerp(grad(P[a+1],x,y-1),grad(P[b+1],x-1,y-1),u),
+      v
+    );
+  }
+  /* fBm — layered octaves for organic look */
+  function fbm(x,y,oct){
+    let v=0,a=0.5,f=1;
+    for(let i=0;i<oct;i++){ v+=a*noise2(x*f,y*f); a*=0.5; f*=2; }
+    return v;
+  }
+
+  /* ── Blob config — 4 large light patches ── */
+  const BLOBS = [
+    { ox:0.0,  oy:0.0,  spd:0.06, r:0.55, alpha:0.045 },
+    { ox:3.7,  oy:1.3,  spd:0.04, r:0.48, alpha:0.035 },
+    { ox:7.1,  oy:5.9,  spd:0.05, r:0.42, alpha:0.030 },
+    { ox:2.0,  oy:9.4,  spd:0.03, r:0.50, alpha:0.025 },
+  ];
+
+  let W, H, STEP=3, t=0;
   function resize(){
-    w = Math.ceil(innerWidth/SCALE);
-    h = Math.ceil(innerHeight/SCALE);
-    cv.width=w; cv.height=h;
+    W=innerWidth; H=innerHeight;
+    cv.width =Math.ceil(W/STEP);
+    cv.height=Math.ceil(H/STEP);
     cv.style.width='100vw'; cv.style.height='100vh';
     cv.style.imageRendering='pixelated';
   }
   resize(); addEventListener('resize', resize);
-  /* Pre-allocate buffer */
-  let img, d;
-  function ensureBuf(){
-    if(!img || img.width!==w || img.height!==h){
-      img = cx.createImageData(w,h);
-      d   = img.data;
-    }
-  }
-  /* Only redraw grain every 2 frames for subtle slow flicker */
-  let skip=false;
-  (function loop(){
-    skip=!skip;
-    if(!skip){
-      ensureBuf();
-      const len=d.length;
-      for(let i=0;i<len;i+=4){
-        const v = (Math.random()*60)|0; /* dim grain — not full white */
-        d[i]=d[i+1]=d[i+2]=v;
-        d[i+3] = 12 + (Math.random()*8|0); /* very low alpha for subtlety */
+
+  const GRAIN_ALPHA = 10; /* film-grain overlay alpha 0-255 */
+
+  function draw(){
+    const cw=cv.width, ch=cv.height;
+    const img=cx.createImageData(cw,ch);
+    const d=img.data;
+
+    const scaleX = 1/(cw*0.9);
+    const scaleY = 1/(ch*0.9);
+    const T = t * 0.0004;  /* very slow time drift */
+
+    for(let py=0;py<ch;py++){
+      for(let px=0;px<cw;px++){
+        const idx=(py*cw+px)*4;
+
+        /* Accumulate brightness from each blob */
+        let brightness=0;
+        for(let b=0;b<BLOBS.length;b++){
+          const bl=BLOBS[b];
+          /* blob centre drifts via noise over time */
+          const cx2 = (fbm(px*scaleX*0.4+bl.ox, T*bl.spd, 3)+1)*0.5;
+          const cy2 = (fbm(py*scaleY*0.4+bl.oy, T*bl.spd+5, 3)+1)*0.5;
+          /* distance from pixel to blob centre (in 0-1 space) */
+          const dx = px/cw - cx2;
+          const dy = py/ch - cy2;
+          const dist = Math.sqrt(dx*dx+dy*dy);
+          /* soft radial falloff */
+          const v = Math.max(0, 1 - dist/bl.r);
+          brightness += bl.alpha * v*v;
+        }
+
+        /* Add per-pixel noise for the Perlin texture layer */
+        const n = (fbm(px*scaleX*2.5+T*0.8, py*scaleY*2.5+T*0.6, 4)+1)*0.5;
+        brightness += n * 0.012;
+
+        /* Film grain */
+        const grain = (Math.random()-0.5)*0.018;
+        brightness = Math.max(0, brightness + grain);
+
+        const val = Math.min(255, (brightness*255)|0);
+        d[idx]=d[idx+1]=d[idx+2]=val;
+        d[idx+3]=255;
       }
-      cx.putImageData(img,0,0);
     }
-    frame++;
+    cx.putImageData(img,0,0);
+    t++;
+  }
+
+  /* Run at ~24fps to keep CPU light while still looking smooth */
+  let last=0;
+  (function loop(ts){
+    if(ts-last > 40){ draw(); last=ts; }
     requestAnimationFrame(loop);
-  })();
+  })(0);
 })();
 
 /* ── CURSOR ─────────────────────────────────────────────────── */
