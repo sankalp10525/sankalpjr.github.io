@@ -1474,9 +1474,11 @@
 
 /* ── SCROLL REVEAL ──────────────────────────────────────────── */
 (function(){
+  /* Use rootMargin bottom 0px (not -40px) so bottom-of-page elements
+     like the contact section always trigger correctly */
   const obs = new IntersectionObserver((entries)=>{
     entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('in'); });
-  },{threshold:0.12, rootMargin:'0px 0px -40px 0px'});
+  },{threshold:0.08, rootMargin:'0px 0px 0px 0px'});
   document.querySelectorAll('.clip-reveal,.fu').forEach(el=>obs.observe(el));
 })();
 
