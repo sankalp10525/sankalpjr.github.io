@@ -27,11 +27,26 @@
     a { color:inherit; text-decoration:none; }
     img { display:block; max-width:100%; }
 
-    /* ─── NOISE BG CANVAS ──────────────────────────────────── */
+    /* ─── ANIMATED BACKGROUND (Corentin settle style) ──────── */
     #noise {
       position:fixed; inset:0;
       pointer-events:none; z-index:0;
-      opacity:0.04;
+      opacity:1;
+    }
+    /* Smooth slow-moving radial gradient blobs */
+    #bg-settle {
+      position:fixed; inset:0;
+      pointer-events:none; z-index:0;
+      background: radial-gradient(ellipse 80% 60% at 20% 20%, rgba(255,255,255,0.03) 0%, transparent 70%),
+                  radial-gradient(ellipse 60% 80% at 80% 80%, rgba(255,255,255,0.025) 0%, transparent 70%),
+                  radial-gradient(ellipse 50% 50% at 50% 50%, rgba(255,255,255,0.015) 0%, transparent 80%);
+      animation: bg-drift 18s ease-in-out infinite alternate;
+    }
+    @keyframes bg-drift {
+      0%   { background-position: 20% 20%, 80% 80%, 50% 50%; opacity:1; }
+      33%  { background-position: 60% 10%, 30% 90%, 70% 30%; }
+      66%  { background-position: 80% 60%, 10% 20%, 30% 70%; }
+      100% { background-position: 10% 80%, 70% 30%, 60% 60%; opacity:0.6; }
     }
 
     /* ─── CUSTOM CURSOR ────────────────────────────────────── */
@@ -608,11 +623,72 @@
       margin-bottom:24px; line-height:1.6;
     }
 
-    /* SNAKE GAME */
-    #snake-canvas {
-      background:#050505; border:1px solid var(--border);
-      display:block; max-width:100%;
+    /* CODE BREAKER GAME */
+    .cb-wrap { display:flex; flex-direction:column; gap:16px; }
+    .cb-board {
+      display:flex; flex-direction:column; gap:4px;
+      max-width:320px;
     }
+    .cb-row {
+      display:flex; align-items:center; gap:8px;
+    }
+    .cb-row-pegs {
+      display:flex; gap:6px;
+    }
+    .cb-row-peg {
+      width:36px; height:36px;
+      border:1px solid var(--dim);
+      display:flex; align-items:center; justify-content:center;
+      font-family:'Space Mono',monospace;
+      font-size:18px; color:#fff;
+      transition:background .2s;
+    }
+    .cb-row-peg.active { border-color:rgba(255,255,255,.4); }
+    .cb-row-hints {
+      display:grid; grid-template-columns:1fr 1fr;
+      gap:3px; margin-left:4px;
+    }
+    .cb-hint {
+      width:12px; height:12px;
+      border-radius:50%;
+      border:1px solid var(--dim);
+      display:inline-block;
+    }
+    .cb-hint.black { background:#fff; border-color:#fff; }
+    .cb-hint.white { background:transparent; border-color:rgba(255,255,255,.5); }
+    .cb-status {
+      font-family:'Space Mono',monospace; font-size:12px;
+      letter-spacing:.1em; text-transform:uppercase;
+      color:var(--mid); min-height:18px;
+    }
+    .cb-status .hl { color:#fff; }
+    .cb-pegs {
+      display:flex; gap:6px;
+    }
+    .cb-peg {
+      width:44px; height:44px;
+      border:1px solid var(--dim);
+      display:flex; align-items:center; justify-content:center;
+      font-size:20px; cursor:pointer;
+      transition:border-color .2s, background .2s;
+      user-select:none;
+    }
+    .cb-peg.filled { border-color:rgba(255,255,255,.5); background:rgba(255,255,255,.05); }
+    .cb-peg.active-slot { border-color:#fff; }
+    .cb-symbols {
+      display:flex; gap:6px; flex-wrap:wrap;
+      margin-top:8px;
+    }
+    .cb-sym-btn {
+      width:36px; height:36px;
+      border:1px solid var(--dim);
+      background:transparent; color:#fff;
+      font-size:16px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      transition:border-color .2s, background .2s;
+    }
+    .cb-sym-btn:hover { border-color:#fff; background:rgba(255,255,255,.07); }
+    .cb-input-row { display:flex; flex-direction:column; gap:10px; }
     .game-controls {
       display:flex; gap:8px; margin-top:16px;
       align-items:center; flex-wrap:wrap;
@@ -676,24 +752,6 @@
       font-size:11px; color:var(--mid);
     }
 
-    /* ─── MOBILE D-PAD ─────────────────────────────────────── */
-    .dpad {
-      display:none; /* shown only on touch */
-      grid-template-columns:repeat(3,44px);
-      grid-template-rows:repeat(3,44px);
-      gap:4px; margin-top:16px;
-    }
-    .dpad-btn {
-      border:1px solid var(--dim);
-      background:transparent; color:#fff;
-      font-size:18px; display:flex;
-      align-items:center; justify-content:center;
-      cursor:pointer; user-select:none;
-      transition:background .15s;
-    }
-    .dpad-btn:active { background:rgba(255,255,255,.1); }
-    .dpad-mid { grid-column:2; grid-row:2; }
-
     /* ─── RESPONSIVE ───────────────────────────────────────── */
     @media (max-width:900px) {
       nav { padding:20px 24px; }
@@ -713,14 +771,14 @@
     @media (max-width:540px) {
       .skills-grid { grid-template-columns:1fr; }
       .about-stats { grid-template-columns:1fr 1fr; }
-      .dpad { display:grid; }
     }
   </style>
 </head>
 <body>
 
-<!-- NOISE -->
+<!-- ANIMATED BACKGROUND -->
 <canvas id="noise"></canvas>
+<div id="bg-settle"></div>
 
 <!-- CURSOR -->
 <div id="cur"></div>
@@ -1006,30 +1064,31 @@
   <div class="wrap">
     <div class="sec-label clip-reveal">Playground</div>
     <h2 class="game-headline clip-reveal d1">Take a break.</h2>
-    <p class="game-sub fu">Two mini-games. Same monochrome craft.</p>
+    <p class="game-sub fu">Three mini-games. Same monochrome craft.</p>
     <div class="games-wrap fu d2">
 
-      <!-- SNAKE -->
+      <!-- CODE BREAKER -->
       <div class="game-panel">
-        <div class="game-title">01 — Snake.exe</div>
-        <div class="game-desc">Classic snake. WASD or arrow keys. On mobile use the D-pad below.</div>
-        <canvas id="snake-canvas" width="360" height="280"></canvas>
-        <div class="game-controls">
-          <button class="gbtn" id="snake-start">Start</button>
-          <button class="gbtn" id="snake-reset">Reset</button>
-          <div class="game-score">Score: <span id="snake-score">0</span></div>
-        </div>
-        <!-- Mobile d-pad -->
-        <div class="dpad" id="dpad">
-          <div></div>
-          <button class="dpad-btn" id="dp-up">↑</button>
-          <div></div>
-          <button class="dpad-btn" id="dp-left">←</button>
-          <div class="dpad-mid"></div>
-          <button class="dpad-btn" id="dp-right">→</button>
-          <div></div>
-          <button class="dpad-btn" id="dp-down">↓</button>
-          <div></div>
+        <div class="game-title">01 — Code Breaker</div>
+        <div class="game-desc">Crack a 4-symbol secret code in 8 attempts. ● = right spot. ○ = wrong spot.</div>
+        <div class="cb-wrap">
+          <div class="cb-board" id="cb-board"></div>
+          <div class="cb-status" id="cb-status">Press Start to play.</div>
+          <div class="cb-input-row" id="cb-input-row">
+            <div class="cb-pegs" id="cb-pegs">
+              <div class="cb-peg" data-i="0"></div>
+              <div class="cb-peg" data-i="1"></div>
+              <div class="cb-peg" data-i="2"></div>
+              <div class="cb-peg" data-i="3"></div>
+            </div>
+            <div class="cb-symbols" id="cb-symbols"></div>
+          </div>
+          <div class="game-controls">
+            <button class="gbtn" id="cb-start">Start</button>
+            <button class="gbtn" id="cb-submit" disabled>Guess</button>
+            <button class="gbtn" id="cb-reset">Reset</button>
+            <div class="game-score">Attempts: <span id="cb-attempts">0</span>/8</div>
+          </div>
         </div>
       </div>
 
@@ -1054,7 +1113,7 @@
 
       <!-- TIC-TAC-TOE -->
       <div class="game-panel">
-        <div class="game-title">03 &mdash; Tic-Tac-Toe</div>
+        <div class="game-title">03 — Tic-Tac-Toe</div>
         <div class="game-desc">You are <strong style="color:#fff;font-weight:400">X</strong>. Play vs AI. Three wins takes the match.</div>
         <div class="ttt-wrap">
           <div class="ttt-board" id="ttt-board">
@@ -1112,20 +1171,7 @@
           </div>
           <div class="cr-arrow">→</div>
         </a>
-        <a href="https://sankalpjr.com" target="_blank" rel="noopener" class="contact-row">
-          <div class="cr-left">
-            <div class="cr-lbl">Website</div>
-            <div class="cr-val">sankalpjr.com</div>
-          </div>
-          <div class="cr-arrow">→</div>
-        </a>
-        <a href="tel:+919743511175" class="contact-row">
-          <div class="cr-left">
-            <div class="cr-lbl">Phone</div>
-            <div class="cr-val">+91 97435 11175</div>
-          </div>
-          <div class="cr-arrow">→</div>
-        </a>
+
       </div>
     </div>
   </div>
@@ -1281,23 +1327,44 @@
   tapEl.addEventListener('click', onTap, { once: true });
 })();
 
-/* ── NOISE ──────────────────────────────────────────────────── */
+/* ── NOISE (smooth film grain — Corentin style) ─────────────── */
 (function(){
   const cv = document.getElementById('noise');
   const cx = cv.getContext('2d');
-  function resize(){ cv.width=innerWidth; cv.height=innerHeight; }
+  let w, h, frame=0;
+  /* Downscale grain for perf, upscale with CSS */
+  const SCALE = 3;
+  function resize(){
+    w = Math.ceil(innerWidth/SCALE);
+    h = Math.ceil(innerHeight/SCALE);
+    cv.width=w; cv.height=h;
+    cv.style.width='100vw'; cv.style.height='100vh';
+    cv.style.imageRendering='pixelated';
+  }
   resize(); addEventListener('resize', resize);
-  let t=0;
-  (function loop(){
-    const w=cv.width, h=cv.height;
-    const img = cx.createImageData(w,h);
-    const d   = img.data;
-    for(let i=0;i<d.length;i+=4){
-      const v=Math.random()*255;
-      d[i]=d[i+1]=d[i+2]=v; d[i+3]=255;
+  /* Pre-allocate buffer */
+  let img, d;
+  function ensureBuf(){
+    if(!img || img.width!==w || img.height!==h){
+      img = cx.createImageData(w,h);
+      d   = img.data;
     }
-    cx.putImageData(img,0,0);
-    t++;
+  }
+  /* Only redraw grain every 2 frames for subtle slow flicker */
+  let skip=false;
+  (function loop(){
+    skip=!skip;
+    if(!skip){
+      ensureBuf();
+      const len=d.length;
+      for(let i=0;i<len;i+=4){
+        const v = (Math.random()*60)|0; /* dim grain — not full white */
+        d[i]=d[i+1]=d[i+2]=v;
+        d[i+3] = 12 + (Math.random()*8|0); /* very low alpha for subtlety */
+      }
+      cx.putImageData(img,0,0);
+    }
+    frame++;
     requestAnimationFrame(loop);
   })();
 })();
@@ -1400,107 +1467,187 @@ setTimeout(()=>{
   document.querySelectorAll('[data-count]').forEach(el=>obs.observe(el));
 })();
 
-/* ── SNAKE GAME ─────────────────────────────────────────────── */
+/* ── CODE BREAKER GAME ──────────────────────────────────────── */
 (function(){
-  const cv    = document.getElementById('snake-canvas');
-  const ctx   = cv.getContext('2d');
-  const CELL  = 20;
-  const COLS  = Math.floor(cv.width/CELL);
-  const ROWS  = Math.floor(cv.height/CELL);
-  let snake, dir, nextDir, food, score, loop, running;
+  const SYMBOLS = ['◆','▲','●','■','★','✦'];
+  const CODE_LEN = 4;
+  const MAX_ATT  = 8;
 
-  function init(){
-    snake   = [{x:6,y:7},{x:5,y:7},{x:4,y:7}];
-    dir     = {x:1,y:0};
-    nextDir = {x:1,y:0};
-    food    = randomFood();
-    score   = 0;
-    running = false;
-    document.getElementById('snake-score').textContent='0';
-    draw();
-  }
+  let secret=[], current=[], activeSlot=0, attempts=0, playing=false;
 
-  function randomFood(){
-    let f;
-    do{ f={x:Math.floor(Math.random()*COLS), y:Math.floor(Math.random()*ROWS)}; }
-    while(snake.some(s=>s.x===f.x&&s.y===f.y));
-    return f;
-  }
+  const boardEl   = document.getElementById('cb-board');
+  const statusEl  = document.getElementById('cb-status');
+  const pegsEl    = document.getElementById('cb-pegs');
+  const symsEl    = document.getElementById('cb-symbols');
+  const startBtn  = document.getElementById('cb-start');
+  const submitBtn = document.getElementById('cb-submit');
+  const resetBtn  = document.getElementById('cb-reset');
+  const attEl     = document.getElementById('cb-attempts');
 
-  function draw(){
-    ctx.clearRect(0,0,cv.width,cv.height);
-    // grid dots
-    ctx.fillStyle='rgba(255,255,255,0.04)';
-    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
-      ctx.beginPath(); ctx.arc(c*CELL+CELL/2,r*CELL+CELL/2,1,0,Math.PI*2); ctx.fill();
+  function makeSecret(){
+    const pool=[...SYMBOLS]; secret=[];
+    for(let i=0;i<CODE_LEN;i++){
+      const idx=Math.floor(Math.random()*pool.length);
+      secret.push(pool[idx]);
+      pool.splice(idx,1);
     }
-    // food
-    ctx.fillStyle='#fff';
-    ctx.fillRect(food.x*CELL+3,food.y*CELL+3,CELL-6,CELL-6);
-    // snake
-    snake.forEach((seg,i)=>{
-      const alpha = 1-(i/snake.length)*0.5;
-      ctx.fillStyle=`rgba(255,255,255,${alpha})`;
-      ctx.fillRect(seg.x*CELL+1,seg.y*CELL+1,CELL-2,CELL-2);
+  }
+
+  function score(guess){
+    let black=0, white=0;
+    const sc=[...secret], gc=[...guess];
+    /* exact matches */
+    for(let i=0;i<CODE_LEN;i++){
+      if(gc[i]===sc[i]){ black++; sc[i]=gc[i]=null; }
+    }
+    /* wrong-position matches */
+    for(let i=0;i<CODE_LEN;i++){
+      if(gc[i]===null) continue;
+      const j=sc.indexOf(gc[i]);
+      if(j!==-1){ white++; sc[j]=null; }
+    }
+    return {black,white};
+  }
+
+  function buildSymbolPicker(){
+    symsEl.innerHTML='';
+    SYMBOLS.forEach(s=>{
+      const b=document.createElement('button');
+      b.className='cb-sym-btn'; b.textContent=s;
+      b.addEventListener('click',()=>{ if(!playing) return; placeSym(s); });
+      symsEl.appendChild(b);
     });
-    // overlay text
-    if(!running){
-      ctx.fillStyle='rgba(0,0,0,0.55)';
-      ctx.fillRect(0,0,cv.width,cv.height);
-      ctx.fillStyle='#fff';
-      ctx.font='700 14px Space Mono,monospace';
-      ctx.textAlign='center';
-      ctx.fillText(score>0?'GAME OVER — Press Start':'Press Start to Play', cv.width/2, cv.height/2);
-      if(score>0){ ctx.font='400 12px Space Mono,monospace'; ctx.fillText('Score: '+score, cv.width/2, cv.height/2+24); }
+  }
+
+  function refreshInputPegs(){
+    document.querySelectorAll('.cb-peg').forEach((p,i)=>{
+      p.textContent = current[i]||'';
+      p.classList.toggle('filled', !!current[i]);
+      p.classList.toggle('active-slot', i===activeSlot && playing);
+    });
+    submitBtn.disabled = !(playing && current.filter(Boolean).length===CODE_LEN);
+    attEl.textContent = attempts;
+  }
+
+  function placeSym(s){
+    if(!playing) return;
+    current[activeSlot]=s;
+    /* advance to next empty slot */
+    let next=-1;
+    for(let i=activeSlot+1;i<CODE_LEN;i++){ if(!current[i]){ next=i; break; } }
+    if(next===-1){
+      for(let i=0;i<CODE_LEN;i++){ if(!current[i]){ next=i; break; } }
+    }
+    if(next!==-1) activeSlot=next;
+    refreshInputPegs();
+  }
+
+  /* Click a filled input peg to clear it */
+  document.querySelectorAll('.cb-peg').forEach((p,i)=>{
+    p.addEventListener('click',()=>{
+      if(!playing) return;
+      current[i]=''; activeSlot=i;
+      refreshInputPegs();
+    });
+  });
+
+  function addBoardRow(guess, black, white){
+    const row = document.createElement('div');
+    row.className='cb-row';
+
+    const pegWrap=document.createElement('div');
+    pegWrap.className='cb-row-pegs';
+    guess.forEach(s=>{
+      const p=document.createElement('div');
+      p.className='cb-row-peg'; p.textContent=s;
+      pegWrap.appendChild(p);
+    });
+
+    const hintWrap=document.createElement('div');
+    hintWrap.className='cb-row-hints';
+    /* black first, then white, then empty */
+    let filled=0;
+    for(let i=0;i<black;i++){
+      const h=document.createElement('div');
+      h.className='cb-hint black'; hintWrap.appendChild(h); filled++;
+    }
+    for(let i=0;i<white;i++){
+      const h=document.createElement('div');
+      h.className='cb-hint white'; hintWrap.appendChild(h); filled++;
+    }
+    for(let i=filled;i<CODE_LEN;i++){
+      const h=document.createElement('div');
+      h.className='cb-hint'; hintWrap.appendChild(h);
+    }
+
+    row.appendChild(pegWrap);
+    row.appendChild(hintWrap);
+    /* prepend so latest guess is at top */
+    boardEl.prepend(row);
+  }
+
+  function setStatus(msg){ statusEl.innerHTML=msg; }
+
+  function initGame(){
+    makeSecret();
+    current=Array(CODE_LEN).fill('');
+    activeSlot=0; attempts=0; playing=true;
+    boardEl.innerHTML='';
+    buildSymbolPicker();
+    refreshInputPegs();
+    setStatus('Pick 4 symbols — <span class="hl">◆ = right spot &nbsp; ○ = wrong spot</span>');
+    startBtn.disabled=true;
+    submitBtn.disabled=true;
+  }
+
+  function submitGuess(){
+    if(!playing || current.filter(Boolean).length!==CODE_LEN) return;
+    const guess=[...current];
+    attempts++;
+    const {black,white}=score(guess);
+    addBoardRow(guess, black, white);
+    current=Array(CODE_LEN).fill(''); activeSlot=0;
+    refreshInputPegs();
+
+    if(black===CODE_LEN){
+      playing=false;
+      setStatus(`<span class="hl">Cracked it!</span> in ${attempts} attempt${attempts>1?'s':''}. 🎉`);
+      startBtn.disabled=false; submitBtn.disabled=true;
+    } else if(attempts>=MAX_ATT){
+      playing=false;
+      setStatus(`Game over. Code was <span class="hl">${secret.join(' ')}</span>`);
+      startBtn.disabled=false; submitBtn.disabled=true;
+    } else {
+      const left=MAX_ATT-attempts;
+      setStatus(`<span class="hl">${black} right</span>, ${white} misplaced. ${left} attempt${left!==1?'s':''} left.`);
     }
   }
 
-  function step(){
-    dir = {...nextDir};
-    const head = {x:snake[0].x+dir.x, y:snake[0].y+dir.y};
-    if(head.x<0||head.x>=COLS||head.y<0||head.y>=ROWS||
-       snake.some(s=>s.x===head.x&&s.y===head.y)){
-      running=false; clearInterval(loop); draw(); return;
-    }
-    snake.unshift(head);
-    if(head.x===food.x&&head.y===food.y){
-      score++; document.getElementById('snake-score').textContent=score;
-      food=randomFood();
-    } else { snake.pop(); }
-    draw();
-  }
+  startBtn.addEventListener('click', initGame);
+  submitBtn.addEventListener('click', submitGuess);
+  resetBtn.addEventListener('click',()=>{
+    playing=false;
+    boardEl.innerHTML='';
+    current=Array(CODE_LEN).fill('');
+    attempts=0; activeSlot=0;
+    refreshInputPegs();
+    setStatus('Press Start to play.');
+    startBtn.disabled=false; submitBtn.disabled=true;
+  });
 
-  function start(){
-    if(running) return;
-    if(score>0) init();
-    running=true;
-    loop=setInterval(step,130);
-  }
-
-  document.getElementById('snake-start').addEventListener('click',start);
-  document.getElementById('snake-reset').addEventListener('click',()=>{ clearInterval(loop); init(); });
-
-  // Keyboard
+  /* Keyboard: number keys 1-6 select symbol, Enter submits, Backspace clears slot */
   document.addEventListener('keydown',e=>{
-    const map={'ArrowUp':{x:0,y:-1},'ArrowDown':{x:0,y:1},'ArrowLeft':{x:-1,y:0},'ArrowRight':{x:1,y:0},
-               'w':{x:0,y:-1},'s':{x:0,y:1},'a':{x:-1,y:0},'d':{x:1,y:0},
-               'W':{x:0,y:-1},'S':{x:0,y:1},'A':{x:-1,y:0},'D':{x:1,y:0}};
-    const nd = map[e.key];
-    if(!nd) return;
-    if(nd.x !== -dir.x || nd.y !== -dir.y) nextDir=nd;
-    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+    if(!playing) return;
+    if(e.key>='1'&&e.key<='6'){ placeSym(SYMBOLS[+e.key-1]); return; }
+    if(e.key==='Enter'){ submitGuess(); return; }
+    if(e.key==='Backspace'){
+      current[activeSlot]=''; refreshInputPegs();
+    }
   });
 
-  // D-pad
-  [['dp-up',{x:0,y:-1}],['dp-down',{x:0,y:1}],['dp-left',{x:-1,y:0}],['dp-right',{x:1,y:0}]].forEach(([id,nd])=>{
-    const btn=document.getElementById(id);
-    if(btn) btn.addEventListener('click',()=>{
-      if(!running) start();
-      if(nd.x !== -dir.x || nd.y !== -dir.y) nextDir=nd;
-    });
-  });
-
-  init();
+  /* Init UI */
+  buildSymbolPicker();
+  refreshInputPegs();
 })();
 
 /* ── TYPE SPEED GAME ────────────────────────────────────────── */
